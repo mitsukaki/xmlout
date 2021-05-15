@@ -45,4 +45,7 @@ The complete, compileable example is in the examples folder.
 
 
 # Todo
-- Add proper documentation
+- add proper documentation
+- support lambda's for writer functions
+- support comments in the xml_node flow
+- check if actually XML compliant in any way lmao

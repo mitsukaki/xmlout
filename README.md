@@ -45,4 +45,4 @@ The complete, compileable example is in the examples folder.
 
 
 # Todo
-Add comments
+- Add proper documentation

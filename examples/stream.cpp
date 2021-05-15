@@ -4,13 +4,18 @@
 #define XMLOUT_IMPLEMENTATION
 #include "../xmlout.h"
 
+void write_func(std::string text)
+{
+    std::cout << text;
+}
+
 int main()
 {
-    std::stringstream ss;
-    xmlout::xml_stream<std::stringstream> xml_output(ss);
+    xmlout::xml_stream xml_output(&write_func);
 
     // writing an empty node
-    xml_output.write_empty("status", {{"version", "1.0"}});
+    std::map<std::string, std::string> attrs = {{"version", "1.0"}};
+    xml_output.write_empty("status", attrs);
 
     // opening a block
     xml_output.write_open("parent");
@@ -18,8 +23,6 @@ int main()
     // opening another block (child)
     xml_output.write_open("child");
 
-    
-
-    // closing a block
-    xml_output.write_close();
+    // close both blocks (applying chaining)
+    xml_output.write_close()->write_close();
 }

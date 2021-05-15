@@ -11,13 +11,11 @@ namespace xmlout
     // private functions
     namespace
     {
-        template <typename T>
         void write_tag(
-            const T& out_stream,
-            const std::string& tag,
-            std::map<std::string, std::string>& attributes,
-            bool is_empty
-        );
+            void (*writer)(std::string),
+            const std::string &tag,
+            std::map<std::string, std::string> &attributes,
+            bool is_empty);
     }
 
     /* DEFINITIONS */
@@ -40,20 +38,20 @@ namespace xmlout
         xml_node* set(std::string& attribute, std::string& value);
         xml_node* set_all(std::map<std::string, std::string>& m_attributes);
 
-        template <typename T>
-        void write(const T& m_out_stream);
+        void write(void (*writer)(std::string));
     };
 
-    template <typename T>
     class xml_stream
     {
     private:
-        T m_out_stream;
+        void (*m_writer)(std::string);
 
         std::stack<std::string> m_tag_stack;
 
     public:
-        xml_stream(T stream) : m_out_stream{stream} {};
+        xml_stream(void (*writer)(std::string)) {
+            m_writer = writer;
+        };
 
         xml_stream* write_open(const std::string& m_tag);
         xml_stream* write_open(
@@ -69,7 +67,7 @@ namespace xmlout
             std::map<std::string, std::string>& m_attributes
         );
 
-        // TODO: xml_stream* write_comment();
+        xml_stream* write_comment(const std::string& comment);
     };
 
     /* IMPLEMENTATION */
@@ -78,20 +76,27 @@ namespace xmlout
     // private functions
     namespace
     {
-        template <typename T>
         void write_tag(
-            const T& out_stream,
-            const std::string& tag,
-            std::map<std::string, std::string>& attributes,
+            void (*writer)(std::string),
+            const std::string &tag,
+            std::map<std::string, std::string> &attributes,
             bool is_empty)
         {
-            out_stream << "<" << tag;
+            writer("<");
+            writer(tag);
+
             std::map<std::string, std::string>::iterator it;
             for (it = attributes.begin(); it != attributes.end(); it++)
-                out_stream << " \"" << it->first << "\"=\"" << it->second << "\"";
+            {
+                writer(" ");
+                writer(it->first);
+                writer("=\"");
+                writer(it->second);
+                writer("\"");
+            }
 
-            if (is_empty) out_stream << "/>";
-            else out_stream << ">";
+            if (is_empty) writer("/>");
+            else writer(">");
         }
     }
 
@@ -123,70 +128,89 @@ namespace xmlout
     {
         std::map<std::string, std::string>::iterator it;
         for (it = attributes.begin(); it != attributes.end(); it++)
-            m_attributes.insert(it->first, it->second);
+            m_attributes.insert(std::pair<std::string, std::string>(
+                it->first, it->second));
 
         return this;
     }
 
-    template <typename T>
-    void xml_node::write(const T& m_out_stream)
+    void xml_node::write(void (*writer)(std::string))
     {
         // write tag
-        write_tag(m_out_stream, m_tag, m_attributes, false);
+        write_tag(writer, m_tag, m_attributes, false);
 
         // write children
         std::vector<xml_node*>::iterator it;
         for (it = m_children.begin(); it != m_children.end(); ++it)
-            (*it)->write(m_out_stream);
+            (*it)->write(writer);
 
         // close tag
-        m_out_stream << "</" << m_tag << ">";
+        writer("</");
+        writer(m_tag);
+        writer(">");
     }
 
-    template <class T>
-    xml_stream<T>* xml_stream<T>::write_open(
+    xml_stream* xml_stream::write_open(
         const std::string& tag)
     {
         // write tag
         m_tag_stack.push(tag);
-        m_out_stream << "<" << tag << ">";
+        m_writer("<");
+        m_writer(tag);
+        m_writer(">");
+        
         return this;
     }
 
-    template <class T>
-    xml_stream<T>* xml_stream<T>::write_open(
+    xml_stream* xml_stream::write_open(
         const std::string& tag, std::map<std::string, std::string>& attributes)
     {
         // write tag
         m_tag_stack.push(tag);
-        write_tag(m_out_stream, tag, attributes, false);
+        write_tag(m_writer, tag, attributes, false);
         return this;
     }
 
-    template <class T>
-    xml_stream<T>* xml_stream<T>::write_close()
+    xml_stream* xml_stream::write_close()
     {
-        m_out_stream << "</" << m_tag_stack.pop() << ">";
+        // write closing tag
+        m_writer("</");
+        m_writer(m_tag_stack.top());
+        m_writer(">");
+
+        m_tag_stack.pop();
+
         return this;
     }
 
-    template <class T>
-    xml_stream<T>* xml_stream<T>::write_empty(const std::string& tag)
+    xml_stream* xml_stream::write_empty(const std::string& tag)
     {
         // write tag
-        m_out_stream << "<" << tag << "/>";
+        m_writer("</");
+        m_writer(m_tag_stack.top());
+        m_writer(">");
+
+        m_tag_stack.top();
         return this;
     }
 
-    template <class T>
-    xml_stream<T>* xml_stream<T>::write_empty(
-        const std::string &tag, std::map<std::string, std::string>& attributes)
+    xml_stream* xml_stream::write_empty(
+        const std::string& tag, std::map<std::string, std::string>& attributes)
     {
-        write_tag(m_out_stream, tag, attributes, true);
+        write_tag(m_writer, tag, attributes, true);
         return this;
     }
 
-#endif // XMLOUT_IMPLEMENTATION
+    xml_stream* xml_stream::write_comment(const std::string& comment)
+    {
+        m_writer("<!-- ");
+        m_writer(comment);
+        m_writer(" -->");
+
+        return this;
+    }
+
+    #endif // XMLOUT_IMPLEMENTATION
 }
 
 #endif // XMLOUT_H

@@ -6,7 +6,7 @@ There are two independent api's available for writing XML files. If you're writi
 
 ## Usage : xml_stream
 
-```
+```cpp
 // this function is called whenever the xml_stream wants to write out
 void write_func(std::string text)
 {

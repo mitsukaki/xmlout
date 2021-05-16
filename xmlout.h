@@ -1,3 +1,5 @@
+#pragma once
+
 #include <vector>
 #include <string>
 #include <stack>
@@ -190,7 +192,7 @@ namespace xmlout
         m_writer(m_tag_stack.top());
         m_writer(">");
 
-        m_tag_stack.top();
+        m_tag_stack.pop();
         return this;
     }
 
